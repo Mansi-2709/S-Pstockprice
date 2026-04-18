@@ -1,6 +1,10 @@
 import streamlit as st
 
 # -------------------- PAGE CONFIG --------------------
+st.markdown(
+    "<div style='margin-top: 40px;'></div>",
+    unsafe_allow_html=True
+)
 st.set_page_config(
     page_title="S&P 500 Prediction Dashboard",
     layout="wide"
