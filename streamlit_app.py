@@ -10,56 +10,76 @@ st.set_page_config(
 st.markdown("""
 <style>
 
-/* Background */
+/* ===== Background Gradient (FIXED) ===== */
 .stApp {
-    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-    color: white;
+    background: linear-gradient(135deg, #5f9ea0, #3c8d90, #2c6e73);
+    color: #ffffff;
 }
 
-/* Glassmorphism Card */
+/* ===== Remove default padding ===== */
+.block-container {
+    padding-top: 2rem;
+}
+
+/* ===== Tabs Styling (FIXED VISIBILITY) ===== */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 30px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    font-size: 18px;
+    font-weight: 600;
+    color: #e0f7fa;  /* light teal text */
+}
+
+.stTabs [aria-selected="true"] {
+    color: #ffffff !important;
+    border-bottom: 3px solid #00e5ff;
+}
+
+/* ===== Glass Card ===== */
 .glass-card {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-    padding: 20px;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    padding: 22px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
-/* Titles */
+/* ===== Title ===== */
 .title {
-    font-size: 40px;
+    font-size: 44px;
     font-weight: 700;
 }
 
 .subtitle {
     font-size: 18px;
-    color: #cfd8dc;
+    color: #d9f3f4;
 }
 
-/* Metric Styling */
+/* ===== Metrics ===== */
 .metric {
-    font-size: 22px;
+    font-size: 26px;
     font-weight: bold;
 }
 
 .metric-label {
     font-size: 14px;
-    color: #b0bec5;
+    color: #e0f7fa;
 }
 
 /* Divider */
 .divider {
-    margin-top: 10px;
-    margin-bottom: 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    margin: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 # -------------------- HEADER --------------------
-st.markdown('<div class="title">📈 S&P 500 Prediction Dashboard</div>', unsafe_allow_html=True)
+st.markdown('<div class="title">📊 S&P 500 Prediction Dashboard</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">LSTM vs XGBoost | Time Series Forecasting</div>', unsafe_allow_html=True)
 
 st.markdown("---")
@@ -74,48 +94,32 @@ tabs = st.tabs([
 ])
 
 # =========================================================
-# 🏠 TAB 1: LANDING PAGE (ONLY THIS FILLED)
+# 🏠 TAB 1: LANDING PAGE
 # =========================================================
 with tabs[0]:
 
-    # -------- Top Metrics Row --------
+    # -------- Top Metrics --------
     col1, col2, col3, col4 = st.columns(4)
 
-    with col1:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="metric-label">Current Price</div>
-            <div class="metric">4,589.32</div>
-        </div>
-        """, unsafe_allow_html=True)
+    metrics = [
+        ("Current Price", "4,589.32"),
+        ("Daily Change", "+0.82%"),
+        ("Volatility", "1.23%"),
+        ("Volume", "3.1B")
+    ]
 
-    with col2:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="metric-label">Daily Change</div>
-            <div class="metric">+0.82%</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col3:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="metric-label">Volatility</div>
-            <div class="metric">1.23%</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col4:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="metric-label">Volume</div>
-            <div class="metric">3.1B</div>
-        </div>
-        """, unsafe_allow_html=True)
+    for col, (label, value) in zip([col1, col2, col3, col4], metrics):
+        with col:
+            st.markdown(f"""
+            <div class="glass-card">
+                <div class="metric-label">{label}</div>
+                <div class="metric">{value}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # -------- Main Chart Placeholder --------
+    # -------- Main Section --------
     col1, col2 = st.columns([3, 1])
 
     with col1:
@@ -123,7 +127,7 @@ with tabs[0]:
         <div class="glass-card">
             <div class="metric-label">Price Trend (S&P 500)</div>
             <div class="divider"></div>
-            <div style="height:300px; display:flex; align-items:center; justify-content:center;">
+            <div style="height:320px; display:flex; align-items:center; justify-content:center;">
                 Chart will be displayed here
             </div>
         </div>
@@ -134,43 +138,34 @@ with tabs[0]:
         <div class="glass-card">
             <div class="metric-label">Model Snapshot</div>
             <div class="divider"></div>
-            <p>LSTM Accuracy: 72%</p>
-            <p>XGBoost Accuracy: 76%</p>
-            <p>Best Model: XGBoost</p>
+            <p>LSTM Accuracy: <b>72%</b></p>
+            <p>XGBoost Accuracy: <b>76%</b></p>
+            <p><b>Best Model:</b> XGBoost</p>
         </div>
         """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # -------- Bottom Section --------
+    # -------- Bottom Cards --------
     col1, col2, col3 = st.columns(3)
 
-    with col1:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="metric-label">Top Sector</div>
-            <div class="metric">Technology</div>
-        </div>
-        """, unsafe_allow_html=True)
+    bottom_data = [
+        ("Top Sector", "Technology"),
+        ("Worst Sector", "Energy"),
+        ("Market Sentiment", "Bullish 📈")
+    ]
 
-    with col2:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="metric-label">Worst Sector</div>
-            <div class="metric">Energy</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col3:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="metric-label">Market Sentiment</div>
-            <div class="metric">Bullish 📈</div>
-        </div>
-        """, unsafe_allow_html=True)
+    for col, (label, value) in zip([col1, col2, col3], bottom_data):
+        with col:
+            st.markdown(f"""
+            <div class="glass-card">
+                <div class="metric-label">{label}</div>
+                <div class="metric">{value}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
 # =========================================================
-# EMPTY TABS (PLACEHOLDERS)
+# EMPTY TABS
 # =========================================================
 with tabs[1]:
     st.empty()
