@@ -12,7 +12,7 @@ st.markdown("""
 
 /* ===== Background Gradient (FIXED) ===== */
 .stApp {
-    background: linear-gradient(135deg, #5f9ea0, #3c8d90, #2c6e73);
+    background: linear-gradient(135deg, #025b7a, #003140, #001c26);
     color: #ffffff;
 }
 
