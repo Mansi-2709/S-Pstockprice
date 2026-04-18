@@ -7,7 +7,7 @@ Description of the app ...
 
 ## Demo App
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://SPstockprice.streamlit.app/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://spstockprice.streamlit.app/)
 
 ## GitHub Codespaces
 
