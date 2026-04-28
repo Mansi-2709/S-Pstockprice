@@ -105,72 +105,165 @@ tabs = st.tabs([
 # 🏠 TAB 1: LANDING PAGE
 # =========================================================
 with tabs[0]:
+    with tabs[0]:
 
-    # -------- Top Metrics --------
+    import pandas as pd
+    import numpy as np
+    import plotly.graph_objects as go
+    import plotly.express as px
+
+    # ---------------- DATA ----------------
+    stock_data = pd.read_csv('')
+    stock_data['date'] = pd.to_datetime(stock_data['date'])
+
+    # ---------------- METRICS ----------------
     col1, col2, col3, col4 = st.columns(4)
 
-    metrics = [
-        ("Current Price", "4,589.32"),
-        ("Daily Change", "+0.82%"),
-        ("Volatility", "1.23%"),
-        ("Volume", "3.1B")
-    ]
+    current_price = stock_data.sort_values('date').iloc[-1]['close']
+    daily_change = stock_data.sort_values('date').iloc[-1]['close'] - stock_data.sort_values('date').iloc[-2]['close']
+    volatility = stock_data['close'].pct_change().std()
+    formatted_sum = "{:.2e}".format(stock_data['volume'].sum())
 
-    for col, (label, value) in zip([col1, col2, col3, col4], metrics):
-        with col:
-            st.markdown(f"""
-            <div class="glass-card">
-                <div class="metric-label">{label}</div>
-                <div class="metric">{value}</div>
-            </div>
-            """, unsafe_allow_html=True)
+    with col1:
+        st.markdown(f"""
+        <div class="glass-card">
+            <div class="metric-label">Current Price</div>
+            <div class="metric">{round(current_price,2)}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown(f"""
+        <div class="glass-card">
+            <div class="metric-label">Daily Change</div>
+            <div class="metric">{round(daily_change,2)}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col3:
+        st.markdown(f"""
+        <div class="glass-card">
+            <div class="metric-label">Volatility</div>
+            <div class="metric">{round(volatility,4)}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col4:
+        st.markdown(f"""
+        <div class="glass-card">
+            <div class="metric-label">Volume</div>
+            <div class="metric">{formatted_sum}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # -------- Main Section --------
+    # ---------------- TREEMAP ----------------
+    latest = stock_data.sort_values('date').groupby('Name').tail(1)
+    prev = stock_data.sort_values('date').groupby('Name').nth(-2).reset_index()
+
+    merged = latest.merge(prev[['Name', 'close']], on='Name', suffixes=('', '_prev'))
+    merged['change'] = ((merged['close'] - merged['close_prev']) / merged['close_prev']) * 100
+
+    fig_tree = px.treemap(
+        merged,
+        path=['Name'],
+        values='volume',
+        color='change',
+        color_continuous_scale=["#8B0000", "#111111", "#00C853"],
+        color_continuous_midpoint=0
+    )
+
+    fig_tree.update_layout(
+        paper_bgcolor="#0b1f24",
+        plot_bgcolor="#0b1f24",
+        font_color="white",
+        margin=dict(t=40, l=10, r=10, b=10)
+    )
+
+    # ---------------- MAIN LAYOUT ----------------
     col1, col2 = st.columns([3, 1])
 
     with col1:
         st.markdown("""
         <div class="glass-card">
-            <div class="metric-label">Price Trend (S&P 500)</div>
+            <div class="metric-label">Market Heatmap</div>
             <div class="divider"></div>
-            <div style="height:320px; display:flex; align-items:center; justify-content:center;">
-                Chart will be displayed here
-            </div>
         </div>
         """, unsafe_allow_html=True)
+        st.plotly_chart(fig_tree, use_container_width=True)
 
     with col2:
         st.markdown("""
         <div class="glass-card">
             <div class="metric-label">Model Snapshot</div>
             <div class="divider"></div>
-            <p>LSTM Accuracy: <b>72%</b></p>
-            <p>XGBoost Accuracy: <b>76%</b></p>
+            <p>LSTM Accuracy: 72%</p>
+            <p>XGBoost Accuracy: 76%</p>
             <p><b>Best Model:</b> XGBoost</p>
         </div>
         """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # -------- Bottom Cards --------
+    # ---------------- STOCK SELECTION + CANDLE ----------------
+    stock_list = stock_data['Name'].unique()
+    selected_stock = st.selectbox("Select Stock", stock_list)
+
+    grouped = stock_data.groupby('Name')
+    data1 = grouped.get_group(selected_stock)
+
+    fig_candle = go.Figure(data=[go.Candlestick(
+        x=data1['date'],
+        open=data1['open'],
+        high=data1['high'],
+        low=data1['low'],
+        close=data1['close']
+    )])
+
+    fig_candle.update_layout(
+        paper_bgcolor="#0b1f24",
+        plot_bgcolor="#0b1f24",
+        font_color="white"
+    )
+
+    st.markdown("""
+    <div class="glass-card">
+        <div class="metric-label">Candlestick Chart</div>
+        <div class="divider"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.plotly_chart(fig_candle, use_container_width=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ---------------- BOTTOM SECTION ----------------
     col1, col2, col3 = st.columns(3)
 
-    bottom_data = [
-        ("Top Sector", "Technology"),
-        ("Worst Sector", "Energy"),
-        ("Market Sentiment", "Bullish 📈")
-    ]
+    with col1:
+        st.markdown("""
+        <div class="glass-card">
+            <div class="metric-label">Top Sector</div>
+            <div class="metric">Technology</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    for col, (label, value) in zip([col1, col2, col3], bottom_data):
-        with col:
-            st.markdown(f"""
-            <div class="glass-card">
-                <div class="metric-label">{label}</div>
-                <div class="metric">{value}</div>
-            </div>
-            """, unsafe_allow_html=True)
+    with col2:
+        st.markdown("""
+        <div class="glass-card">
+            <div class="metric-label">Worst Sector</div>
+            <div class="metric">Energy</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col3:
+        st.markdown("""
+        <div class="glass-card">
+            <div class="metric-label">Market Sentiment</div>
+            <div class="metric">Bullish 📈</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # =========================================================
 # EMPTY TABS
