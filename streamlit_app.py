@@ -113,7 +113,9 @@ with tabs[0]:
     import plotly.express as px
 
     # ---------------- DATA ----------------
-    stock_data = pd.read_csv('')
+    file_id = 'https://drive.google.com/file/d/1s5rg6SG7IoZ4poTNqAKXdh_tJT_S44-w/view?usp=sharing'
+    url = f'https://google.com{file_id}'
+    stock_data = pd.read_csv(url)
     stock_data['date'] = pd.to_datetime(stock_data['date'])
 
     # ---------------- METRICS ----------------
