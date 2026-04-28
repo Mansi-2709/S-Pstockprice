@@ -105,8 +105,6 @@ tabs = st.tabs([
 # 🏠 TAB 1: LANDING PAGE
 # =========================================================
 with tabs[0]:
-    with tabs[0]:
-
     import pandas as pd
     import numpy as np
     import plotly.graph_objects as go
