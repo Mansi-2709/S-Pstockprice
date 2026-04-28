@@ -114,14 +114,8 @@ with tabs[0]:
     import io
 
     # ---------------- DATA ----------------
-    url = "https://github.com/Mansi-2709/S-Pstockprice/blob/master/all_stocks_5yr.zip"
-    # Download
-    r = requests.get(url)
-
-    # Extract
-    z = zipfile.ZipFile(io.BytesIO(r.content))
-    z.extractall("data_folder")
-    stock_data = pd.read_csv("data_folder/all_stocks_5yr.csv")
+    url = "https://raw.githubusercontent.com/Mansi-2709/S-Pstockprice/master/all_stocks_5yr.zip"
+    stock_data = pd.read_csv(url, compression='zip')
     stock_data['date'] = pd.to_datetime(stock_data['date'])
     # ---------------- METRICS ----------------
     col1, col2, col3, col4 = st.columns(4)
