@@ -109,7 +109,6 @@ import requests
 import zipfile
 import io
 import tensorflow as tf
-!pip install -q keras
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
