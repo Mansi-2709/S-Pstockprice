@@ -101,25 +101,25 @@ tabs = st.tabs([
     "🔮 Forecast"
 ])
 
-import pandas as pd
-import numpy as np
-import plotly.graph_objects as go
-import plotly.express as px
-import requests
-import zipfile
-import io
-import tensorflow as tf
-from sklearn.preprocessing import MinMaxScaler
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import LSTM
-import matplotlib.pyplot as plt
-import xgboost as xgb
-from sklearn.model_selection import TimeSeriesSplit
 # =========================================================
 # 🏠 TAB 1: LANDING PAGE
 # =========================================================
 with tabs[0]:
+    import pandas as pd
+    import numpy as np
+    import plotly.graph_objects as go
+    import plotly.express as px
+    import requests
+    import zipfile
+    import io
+    import tensorflow as tf
+    from sklearn.preprocessing import MinMaxScaler
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.layers import Dense
+    from tensorflow.keras.layers import LSTM
+    import matplotlib.pyplot as plt
+    import xgboost as xgb
+    from sklearn.model_selection import TimeSeriesSplit
     # ---------------- DATA ----------------
     url = "https://raw.githubusercontent.com/Mansi-2709/S-Pstockprice/master/all_stocks_5yr.zip"
     stock_data = pd.read_csv(url, compression='zip')
