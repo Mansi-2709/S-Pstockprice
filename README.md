@@ -350,35 +350,6 @@ Stock markets are highly unpredictable and affected by numerous factors includin
 Therefore, model predictions should **not be considered financial advice or guaranteed future prices**.
 
 ---
-
-# 🚀 Future Improvements
-
-Some potential improvements to this project include:
-
-* Incorporating additional technical indicators such as:
-
-  * Moving Averages
-  * RSI
-  * MACD
-  * Bollinger Bands
-* Including trading volume as a predictive feature
-* Hyperparameter tuning for both models
-* Comparing additional models such as:
-
-  * Random Forest
-  * LightGBM
-  * GRU
-  * Transformer
-* Multi-step forecasting
-* Predicting **Close Price** instead of only Open Price
-* Predicting stock returns instead of raw prices
-* Adding walk-forward validation
-* Adding model explainability
-* Creating an interactive web dashboard
-* Deploying the trained models as an application
-
----
-
 # 📁 Project Structure
 
 ```text
