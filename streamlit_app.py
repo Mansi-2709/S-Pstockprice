@@ -1,289 +1,206 @@
-import streamlit as st
+import tensorflow as tf
+!pip install -q keras
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+import plotly.express as px
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import LSTM
+import matplotlib.pyplot as plt
+import xgboost as xgb
+from sklearn.model_selection import TimeSeriesSplit
 
-# -------------------- PAGE CONFIG --------------------
-st.markdown(
-    "<div style='margin-top: 40px;'></div>",
-    unsafe_allow_html=True
+stock_data=pd.read_csv('/content/drive/MyDrive/Colab Notebooks/all_stocks_5yr.csv')
+
+stock_data['date'] = pd.to_datetime(stock_data['date'])
+stock_data['Name'].unique()
+
+# Get latest record per stock
+latest = stock_data.sort_values('date').groupby('Name').tail(1)
+
+# Get previous day for % change
+prev = stock_data.sort_values('date').groupby('Name').nth(-2).reset_index()
+
+# Merge
+merged = latest.merge(prev[['Name', 'close']], on='Name', suffixes=('', '_prev'))
+
+# Calculate % change
+merged['change'] = ((merged['close'] - merged['close_prev']) / merged['close_prev']) * 100
+
+fig = px.treemap(
+    merged,
+    path=['Name'],                  # Only stocks (no sector available)
+    values='volume',                # Size of box
+    color='change',                 # Color based on % change
+    color_continuous_scale=[
+        "#8B0000", "#111111", "#00C853"
+    ],
+    color_continuous_midpoint=0
 )
-st.set_page_config(
-    page_title="S&P 500 Prediction Dashboard",
-    layout="wide"
+
+fig.update_layout(
+    paper_bgcolor="#0b1f24",
+    plot_bgcolor="#0b1f24",
+    font_color="white",
+    margin=dict(t=40, l=10, r=10, b=10)
 )
 
-# -------------------- CUSTOM CSS --------------------
-st.markdown("""
-<style>
+fig.show()
 
-header[data-testid="stHeader"] {
-    display: none;
-}
+grouped = stock_data.groupby('Name')
+data1 = grouped.get_group('BAC')
+data1
 
-/* ===== Background Gradient (FIXED) ===== */
-.stApp {
-    background: linear-gradient(180deg, #09a6d6, #003140, #001c26);
-    color: #ffffff;
-}
+data2=data1[['date', 'open']].copy()
+data2=data2.set_index('date')
+fig = go.Figure(data=[go.Candlestick(x=data1['date'],
+                open=data1['open'],
+                high=data1['high'],
+                low=data1['low'],
+                close=data1['close'])])
 
-/* ===== Remove default padding ===== */
-.block-container {
-    padding-top: 2rem;
-}
+fig.show()
+data1=data1['open']
+data1
 
-/* ===== Tabs Styling (FIXED VISIBILITY) ===== */
-.stTabs [data-baseweb="tab-list"] {
-    gap: 30px;
-}
+# LSTM is sensitive to the scale of data so we use MinMaxScaler to fit data in range of 0 to 1
+scaler=MinMaxScaler(feature_range=(0,1))
+data1=scaler.fit_transform(np.array(data1).reshape(-1,1))
+training_size=int(len(data1)*0.65) # splitting data into train test split
+test_size=len(data1)-training_size
+train_data,test_data=data1[0:training_size,:],data1[training_size:len(data1),:1]
 
-.stTabs [data-baseweb="tab"] {
-    font-size: 18px;
-    font-weight: 600;
-    color: #e0f7fa;  /* light teal text */
-}
+"""
+This is an important step in training our model there are two components X(input features) and Y(output)
+so here we use the 'open' column to make the entire data so the logic is that we use data of 100 days as input feature(X) and the next day's data as output(Y)
+same is repeated again and again for all the data. Then we train our model with this data with X and Y that we generated.
+here time_step is 100 but we can take this value as per our data
+"""
+def create_dataset(dataset, time_step=1):
+	dataX, dataY = [], []
+	for i in range(len(dataset)-time_step-1):
+		a = dataset[i:(i+time_step), 0]   ###i=0, 0,1,2,3-----99   100
+		dataX.append(a)
+		dataY.append(dataset[i + time_step, 0])
+	return np.array(dataX), np.array(dataY)
 
-.stTabs [aria-selected="true"] {
-    color: #ffffff !important;
-    border-bottom: 3px solid #00e5ff;
-}
+time_step = 100
+X_train, y_train = create_dataset(train_data, time_step)
+X_test, ytest = create_dataset(test_data, time_step)
+# reshape input to be [samples, time steps, features] which is required for LSTM
+X_train =X_train.reshape(X_train.shape[0],X_train.shape[1] , 1)
+X_test = X_test.reshape(X_test.shape[0],X_test.shape[1] , 1)
+model=Sequential()
+model.add(LSTM(50,return_sequences=True,input_shape=(100,1)))
+model.add(LSTM(50,return_sequences=True))
+model.add(LSTM(50))
+model.add(Dense(1))
+model.compile(loss='mean_squared_error',optimizer='adam')
+model.summary()
+model.fit(X_train,y_train,validation_data=(X_test,ytest),epochs=100,batch_size=64,verbose=1)
 
-/* ===== Glass Card ===== */
-.glass-card {
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 18px;
-    padding: 22px;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-}
+train_predict=model.predict(X_train)
+test_predict=model.predict(X_test)
+##Transformback to original form
+train_predict=scaler.inverse_transform(train_predict)
+test_predict=scaler.inverse_transform(test_predict)
+### Calculate RMSE performance metrics
+import math
+from sklearn.metrics import mean_squared_error
+math.sqrt(mean_squared_error(y_train,train_predict))
 
-/* ===== Title ===== */
-.title {
-    font-size: 44px;
-    font-weight: 700;
-}
+### Test Data RMSE
+math.sqrt(mean_squared_error(ytest,test_predict))
+### Plotting
+# shift train predictions for plotting
+look_back=100
+trainPredictPlot = np.empty_like(data1)
+trainPredictPlot[:, :] = np.nan
+trainPredictPlot[look_back:len(train_predict)+look_back, :] = train_predict
+# shift test predictions for plotting
+testPredictPlot = np.empty_like(data1)
+testPredictPlot[:, :] = np.nan
+testPredictPlot[len(train_predict)+(look_back*2)+1:len(data1)-1, :] = test_predict
+# plot baseline and predictions
+plt.plot(scaler.inverse_transform(data1))
+plt.plot(trainPredictPlot)
+plt.plot(testPredictPlot)
+plt.show()
 
-.subtitle {
-    font-size: 18px;
-    color: #d9f3f4;
-}
+# XGBoost Regressor ---------------------------------------------------
 
-/* ===== Metrics ===== */
-.metric {
-    font-size: 26px;
-    font-weight: bold;
-}
+def create_features(df):
+    """
+    Create time series features based on time series index. we have converted date into index so now we take
+    each date(each entry) and get features like quarter, week, month, year, day of week, day of year, day of month
+    """
+    df = df.copy()
+    df['dayofweek'] = df.index.dayofweek
+    df['quarter'] = df.index.quarter
+    df['month'] = df.index.month
+    df['year'] = df.index.year
+    df['dayofyear'] = df.index.dayofyear
+    df['dayofmonth'] = df.index.day
+    df['weekofyear'] = df.index.isocalendar().week
+    return df
 
-.metric-label {
-    font-size: 14px;
-    color: #e0f7fa;
-}
+def add_lags(df):
+    target_map = data2['open'].to_dict()
+    df['lag1'] = (df.index - pd.Timedelta('35 days')).map(target_map)   # lag features are when we use past data as one of the features
+    df['lag2'] = (df.index - pd.Timedelta('63 days')).map(target_map)   # eg. here we have 35 days lag so starting from first entry we go 35 days in past for every date(entry) and use data for that date as the feature
+    df['lag3'] = (df.index - pd.Timedelta('91 days')).map(target_map)   # now for the very first data we don't have past data so we put NaN there
+    df['lag4'] = (df.index - pd.Timedelta('126 days')).map(target_map)  # same goes for all lags 63 days, 91 days, 126 days ....
+    df['lag5'] = (df.index - pd.Timedelta('154 days')).map(target_map)
+    df['lag6'] = (df.index - pd.Timedelta('182 days')).map(target_map)
+    return df
 
-/* Divider */
-.divider {
-    margin: 12px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.2);
-}
+data2 = create_features(data2)
+data2 = add_lags(data2)
 
-</style>
-""", unsafe_allow_html=True)
+tss = TimeSeriesSplit(n_splits=5, test_size= 180, gap=24)  #splitting data into test and train
+data2 = data2.sort_index()
 
-# -------------------- HEADER --------------------
-st.markdown('<div class="title">📊 S&P 500 Prediction Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">LSTM vs XGBoost | Time Series Forecasting</div>', unsafe_allow_html=True)
 
-st.markdown("---")
+fold = 0
+preds = []
+scores = []
+for train_idx, val_idx in tss.split(data2):
+    train = data2.iloc[train_idx]
+    test = data2.iloc[val_idx]
 
-# -------------------- TABS --------------------
-tabs = st.tabs([
-    "🏠 Overview",
-    "📊 EDA",
-    "🤖 Models",
-    "⚖️ Comparison",
-    "🔮 Forecast"
-])
+    train = create_features(train)
+    test = create_features(test)
+    FEATURES = ['dayofyear', 'dayofmonth', 'weekofyear', 'dayofweek', 'quarter', 'month','year',
+                'lag1','lag2','lag3', 'lag4','lag5','lag6']
+    TARGET = 'open'
 
-# =========================================================
-# 🏠 TAB 1: LANDING PAGE
-# =========================================================
-with tabs[0]:
-    import pandas as pd
-    import numpy as np
-    import plotly.graph_objects as go
-    import plotly.express as px
-    import requests
-    import zipfile
-    import io
-    import tensorflow as tf
-    from sklearn.preprocessing import MinMaxScaler
-    from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import Dense
-    from tensorflow.keras.layers import LSTM
-    import matplotlib.pyplot as plt
-    import xgboost as xgb
-    from sklearn.model_selection import TimeSeriesSplit
-    # ---------------- DATA ----------------
-    url = "https://raw.githubusercontent.com/Mansi-2709/S-Pstockprice/master/all_stocks_5yr.zip"
-    stock_data = pd.read_csv(url, compression='zip')
-    stock_data['date'] = pd.to_datetime(stock_data['date'])
-    # ---------------- METRICS ----------------
-    col1, col2, col3, col4 = st.columns(4)
+    X_train = train[FEATURES]
+    y_train = train[TARGET]
 
-    current_price = stock_data.sort_values('date').iloc[-1]['close']
-    daily_change = stock_data.sort_values('date').iloc[-1]['close'] - stock_data.sort_values('date').iloc[-2]['close']
-    volatility = stock_data['close'].pct_change().std()
-    formatted_sum = "{:.2e}".format(stock_data['volume'].sum())
+    X_test = test[FEATURES]
+    y_test = test[TARGET]
+    reg = xgb.XGBRegressor(base_score=0.5, booster='gbtree',
+                           n_estimators=1000,
+                           early_stopping_rounds=50,
+                           objective='reg:linear',
+                           max_depth=3,
+                           learning_rate=0.01)
+    reg.fit(X_train, y_train,
+            eval_set=[(X_train, y_train), (X_test, y_test)],
+            verbose=100)
+    y_pred = reg.predict(X_test)
+    preds.append(y_pred)
+    score = np.sqrt(mean_squared_error(y_test, y_pred))
+    scores.append(score)
 
-    with col1:
-        st.markdown(f"""
-        <div class="glass-card">
-            <div class="metric-label">Current Price</div>
-            <div class="metric">{round(current_price,2)}</div>
-        </div>
-        """, unsafe_allow_html=True)
+test['prediction'] = reg.predict(X_test)
+data2 = data2.merge(test[['prediction']], how='left', left_index=True, right_index=True)
+ax = data2[['open']].plot(figsize=(15, 5))
+data2['prediction'].plot(ax=ax, style='.')
+plt.legend(['Truth Data', 'Predictions'])
+ax.set_title('Raw Dat and Prediction')
+plt.show()
 
-    with col2:
-        st.markdown(f"""
-        <div class="glass-card">
-            <div class="metric-label">Daily Change</div>
-            <div class="metric">{round(daily_change,2)}</div>
-        </div>
-        """, unsafe_allow_html=True)
 
-    with col3:
-        st.markdown(f"""
-        <div class="glass-card">
-            <div class="metric-label">Volatility</div>
-            <div class="metric">{round(volatility,4)}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col4:
-        st.markdown(f"""
-        <div class="glass-card">
-            <div class="metric-label">Volume</div>
-            <div class="metric">{formatted_sum}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # ---------------- TREEMAP ----------------
-    latest = stock_data.sort_values('date').groupby('Name').tail(1)
-    prev = stock_data.sort_values('date').groupby('Name').nth(-2).reset_index()
-
-    merged = latest.merge(prev[['Name', 'close']], on='Name', suffixes=('', '_prev'))
-    merged['change'] = ((merged['close'] - merged['close_prev']) / merged['close_prev']) * 100
-
-    fig_tree = px.treemap(
-        merged,
-        path=['Name'],
-        values='volume',
-        color='change',
-        color_continuous_scale=["#8B0000", "#111111", "#00C853"],
-        color_continuous_midpoint=0
-    )
-
-    fig_tree.update_layout(
-        paper_bgcolor="#0b1f24",
-        plot_bgcolor="#0b1f24",
-        font_color="white",
-        margin=dict(t=40, l=10, r=10, b=10)
-    )
-
-    # ---------------- MAIN LAYOUT ----------------
-    col1, col2 = st.columns([3, 1])
-
-    with col1:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="metric-label">Market Heatmap</div>
-            <div class="divider"></div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.plotly_chart(fig_tree, use_container_width=True)
-
-    with col2:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="metric-label">Model Snapshot</div>
-            <div class="divider"></div>
-            <p>LSTM Accuracy: 72%</p>
-            <p>XGBoost Accuracy: 76%</p>
-            <p><b>Best Model:</b> XGBoost</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # ---------------- STOCK SELECTION + CANDLE ----------------
-    stock_list = stock_data['Name'].unique()
-    selected_stock = st.selectbox("Select Stock", stock_list)
-
-    grouped = stock_data.groupby('Name')
-    data1 = grouped.get_group(selected_stock)
-
-    fig_candle = go.Figure(data=[go.Candlestick(
-        x=data1['date'],
-        open=data1['open'],
-        high=data1['high'],
-        low=data1['low'],
-        close=data1['close']
-    )])
-
-    fig_candle.update_layout(
-        paper_bgcolor="#0b1f24",
-        plot_bgcolor="#0b1f24",
-        font_color="white"
-    )
-
-    st.markdown("""
-    <div class="glass-card">
-        <div class="metric-label">Candlestick Chart</div>
-        <div class="divider"></div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.plotly_chart(fig_candle, use_container_width=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # ---------------- BOTTOM SECTION ----------------
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="metric-label">Top Sector</div>
-            <div class="metric">Technology</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col2:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="metric-label">Worst Sector</div>
-            <div class="metric">Energy</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col3:
-        st.markdown("""
-        <div class="glass-card">
-            <div class="metric-label">Market Sentiment</div>
-            <div class="metric">Bullish 📈</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-# =========================================================
-# EMPTY TABS
-# =========================================================
-with tabs[1]:
-    st.empty()
-
-with tabs[2]:
-    st.empty()
-
-with tabs[3]:
-    st.empty()
-
-with tabs[4]:
-    st.empty()
