@@ -46,6 +46,14 @@ The dataset contains historical records for multiple S&P 500 companies.
 
 For individual stock prediction, the dataset is filtered based on the selected stock ticker/name before training the models.
 
+This is the image showing a treemap of all stocks where each stock is represented by a box and size of box represents the volume of stock.
+
+<img width="1255" height="694" alt="image" src="https://github.com/user-attachments/assets/6c7799c2-d71d-4eda-84eb-91c8a7cde79f" />
+
+This is CandleStick chart of the stock 'BAC' , it shows the price of the stock for each day and the trend in the pricing.
+
+<img width="1239" height="673" alt="image" src="https://github.com/user-attachments/assets/34c7f040-91d2-43e8-b1e3-fc54d247b29c" />
+
 ---
 
 ## 🔄 Project Workflow
@@ -229,6 +237,12 @@ The comparison helps identify:
 * Where models deviate from actual prices
 * How well each model captures price trends
 * Which model performs better over the test period
+
+Xgboost prediction with true prices
+<img width="1241" height="454" alt="image" src="https://github.com/user-attachments/assets/3c24f246-dc1f-4922-93ad-08c5884b4539" />
+
+LSTM prediction with true prices
+<img width="827" height="621" alt="image" src="https://github.com/user-attachments/assets/40036051-d512-4c7a-8b60-2ac2d290d761" />
 
 The visual comparison showed that **LSTM was able to follow the underlying time-series pattern more effectively than XGBoost** for this experiment.
 
